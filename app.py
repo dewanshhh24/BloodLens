@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+from tensorflow.keras.layers import InputLayer
 import numpy as np
 from flask_cors import CORS
 from io import BytesIO
@@ -18,12 +19,7 @@ CANCER_ID = "1VZyp39EgJW8BnQUVOfwQH9PU5WKRyyP-"
 cell_path = "cell_model.keras"
 cancer_path = "cancer_model.keras"
 
-if os.path.exists(cell_path):
-    os.remove(cell_path)
-
-if os.path.exists(cancer_path):
-    os.remove(cancer_path)
-
+# 🔥 Download models (only if not present)
 def download_model(file_id, output):
     if not os.path.exists(output):
         print(f"Downloading {output}...")
@@ -33,15 +29,25 @@ def download_model(file_id, output):
         except Exception as e:
             print(f"Download failed: {e}")
 
-# 🔥 Download FIRST
 download_model(CELL_ID, cell_path)
 download_model(CANCER_ID, cancer_path)
 
-# 🔥 Load AFTER download
+# ==================== KERAS COMPATIBILITY FIX ====================
+
+def custom_input_layer(*args, **kwargs):
+    kwargs.pop("batch_shape", None)
+    kwargs.pop("optional", None)
+    return InputLayer(*args, **kwargs)
+
+custom_objects = {
+    "InputLayer": custom_input_layer
+}
+
+# 🔥 Load models safely
 try:
-    cell_model = load_model(cell_path, compile=False, safe_mode=False)
-    cancer_model = load_model(cancer_path, compile=False, safe_mode=False)
-    print("Models loaded successfully.")
+    cell_model = load_model(cell_path, compile=False, custom_objects=custom_objects)
+    cancer_model = load_model(cancer_path, compile=False, custom_objects=custom_objects)
+    print("Models loaded successfully ✅")
 except Exception as e:
     print("Model loading failed:", e)
     cell_model = None
@@ -82,6 +88,7 @@ def predict():
         img_array = image.img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
+        # Predictions
         cell_pred = cell_model.predict(img_array)
         cancer_pred = cancer_model.predict(img_array)
 
@@ -105,5 +112,5 @@ def predict():
 # ==================== RUN ====================
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # 🔥 VERY IMPORTANT FOR RENDER
+    port = int(os.environ.get("PORT", 5000))  # 🔥 REQUIRED FOR RENDER
     app.run(host='0.0.0.0', port=port)
