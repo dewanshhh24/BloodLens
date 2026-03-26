@@ -18,14 +18,20 @@ CANCER_ID = "1VZyp39EgJW8BnQUVOfwQH9PU5WKRyyP-"
 cell_path = "cell_model.keras"
 cancer_path = "cancer_model.keras"
 
+if os.path.exists(cell_path):
+    os.remove(cell_path)
+
+if os.path.exists(cancer_path):
+    os.remove(cancer_path)
+
 def download_model(file_id, output):
     if not os.path.exists(output):
         print(f"Downloading {output}...")
         try:
-            gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
+            gdown.download(id=file_id, output=output, quiet=False, fuzzy=True)
             print(f"{output} downloaded successfully.")
         except Exception as e:
-            print(f"Error downloading {output}: {e}")
+            print(f"Download failed: {e}")
 
 # 🔥 Download FIRST
 download_model(CELL_ID, cell_path)
