@@ -48,15 +48,29 @@ download_file(CANCER_WEIGHTS_ID, cancer_weights_path)
 # ==================== LOAD MODELS ====================
 
 
+from tensorflow.keras.models import model_from_json
+import json
+
 def load_model_from_files(json_path, weights_path):
     try:
         with open(json_path, "r") as f:
-            model_json = f.read()
+            config = json.load(f)
 
-        # 🔥 CLEAN JSON (VERY IMPORTANT)
-        model_json = model_json.replace('"batch_shape":', '"batch_input_shape":')
-        model_json = model_json.replace('"optional": false,', '')
-        model_json = model_json.replace('"optional": false', '')
+        # 🔥 FIX INPUT LAYER CONFIG SAFELY
+        for layer in config['config']['layers']:
+            if layer['class_name'] == 'InputLayer':
+                layer_config = layer['config']
+
+                # Fix batch_shape → batch_input_shape
+                if 'batch_shape' in layer_config:
+                    layer_config['batch_input_shape'] = layer_config.pop('batch_shape')
+
+                # Remove unsupported key
+                if 'optional' in layer_config:
+                    layer_config.pop('optional')
+
+        # Convert back to JSON string
+        model_json = json.dumps(config)
 
         model = model_from_json(model_json)
         model.load_weights(weights_path)
