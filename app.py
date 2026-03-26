@@ -43,10 +43,21 @@ custom_objects = {
     "InputLayer": custom_input_layer
 }
 
-# 🔥 Load models safely
+
+
+def load_safe_model(path):
+    try:
+        # Try normal loading
+        return load_model(path, compile=False)
+    except Exception as e:
+        print("Standard load failed, trying fallback:", e)
+        
+        # 🔥 Fallback: load via tf.keras (ignores extra args)
+        return tf.keras.models.load_model(path, compile=False)
+
 try:
-    cell_model = load_model(cell_path, compile=False, custom_objects=custom_objects)
-    cancer_model = load_model(cancer_path, compile=False, custom_objects=custom_objects)
+    cell_model = load_safe_model(cell_path)
+    cancer_model = load_safe_model(cancer_path)
     print("Models loaded successfully ✅")
 except Exception as e:
     print("Model loading failed:", e)
