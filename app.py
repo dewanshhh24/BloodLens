@@ -47,15 +47,21 @@ download_file(CANCER_WEIGHTS_ID, cancer_weights_path)
 
 # ==================== LOAD MODELS ====================
 
+
 def load_model_from_files(json_path, weights_path):
     try:
         with open(json_path, "r") as f:
             model_json = f.read()
-        
+
+        # 🔥 CLEAN JSON (VERY IMPORTANT)
+        model_json = model_json.replace('"batch_shape":', '"batch_input_shape":')
+        model_json = model_json.replace('"optional": false,', '')
+        model_json = model_json.replace('"optional": false', '')
+
         model = model_from_json(model_json)
         model.load_weights(weights_path)
 
-        print(f"Loaded model from {json_path}")
+        print(f"Loaded model from {json_path} ✅")
         return model
 
     except Exception as e:
