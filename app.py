@@ -14,11 +14,11 @@ CORS(app)
 
 # ==================== MODEL SETUP ====================
 
-CELL_ID = "1GEhRos_mvwv6kxIp2TW-8jxTKkku7XVU"
-CANCER_ID = "1VZyp39EgJW8BnQUVOfwQH9PU5WKRyyP-"
+CELL_ID = "1EfOd-sju9QZ6FAPxuwxwQfFQoC6ALvGk"
+CANCER_ID = "1WoTesKl-Fn8OVHG6d9qCUhw2S5wE5B7h"
 
-cell_path = "cell_model.keras"
-cancer_path = "cancer_model.keras"
+cell_path = "cell_model.h5"
+cancer_path = "cancer_model.h5"
 
 # 🔥 Download models (only if not present)
 def download_model(file_id, output):
