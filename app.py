@@ -39,8 +39,8 @@ download_model(CANCER_ID, cancer_path)
 
 # 🔥 Load AFTER download
 try:
-    cell_model = load_model(cell_path)
-    cancer_model = load_model(cancer_path)
+    cell_model = load_model(cell_path, compile=False, safe_mode=False)
+    cancer_model = load_model(cancer_path, compile=False, safe_mode=False)
     print("Models loaded successfully.")
 except Exception as e:
     print("Model loading failed:", e)
