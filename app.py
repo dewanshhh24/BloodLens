@@ -1,8 +1,7 @@
 import tensorflow as tf
 from flask import Flask, request, jsonify
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import model_from_json
 from tensorflow.keras.preprocessing import image
-from tensorflow.keras.layers import InputLayer
 import numpy as np
 from flask_cors import CORS
 from io import BytesIO
@@ -12,16 +11,25 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ==================== MODEL SETUP ====================
+# ==================== MODEL FILE IDs ====================
 
-CELL_ID = "1EfOd-sju9QZ6FAPxuwxwQfFQoC6ALvGk"
-CANCER_ID = "1WoTesKl-Fn8OVHG6d9qCUhw2S5wE5B7h"
+CELL_JSON_ID = "1qeUVGsun8JBAzHcisMZREs7biwwK60J-"
+CELL_WEIGHTS_ID = "1swz-wxFoW4zb5yvPpleoNlv7oX5qcUKo"
 
-cell_path = "cell_model.h5"
-cancer_path = "cancer_model.h5"
+CANCER_JSON_ID = "1XvM3D2Jw1_ohOKAck1qazIGN226Sw6f3"
+CANCER_WEIGHTS_ID = "105wA4UCS8nUJkXHNIXvEjgQoUN807WHZ"
 
-# 🔥 Download models (only if not present)
-def download_model(file_id, output):
+# ==================== FILE PATHS ====================
+
+cell_json_path = "cell_model.json"
+cell_weights_path = "cell_weights.weights.h5"
+
+cancer_json_path = "cancer_model.json"
+cancer_weights_path = "cancer_weights.weights.h5"
+
+# ==================== DOWNLOAD FUNCTION ====================
+
+def download_file(file_id, output):
     if not os.path.exists(output):
         print(f"Downloading {output}...")
         try:
@@ -30,40 +38,32 @@ def download_model(file_id, output):
         except Exception as e:
             print(f"Download failed: {e}")
 
-download_model(CELL_ID, cell_path)
-download_model(CANCER_ID, cancer_path)
+# Download all files
+download_file(CELL_JSON_ID, cell_json_path)
+download_file(CELL_WEIGHTS_ID, cell_weights_path)
 
-# ==================== KERAS COMPATIBILITY FIX ====================
+download_file(CANCER_JSON_ID, cancer_json_path)
+download_file(CANCER_WEIGHTS_ID, cancer_weights_path)
 
-def custom_input_layer(*args, **kwargs):
-    kwargs.pop("batch_shape", None)
-    kwargs.pop("optional", None)
-    return InputLayer(*args, **kwargs)
+# ==================== LOAD MODELS ====================
 
-custom_objects = {
-    "InputLayer": custom_input_layer
-}
-
-
-
-def load_safe_model(path):
+def load_model_from_files(json_path, weights_path):
     try:
-        # Try normal loading
-        return load_model(path, compile=False)
-    except Exception as e:
-        print("Standard load failed, trying fallback:", e)
+        with open(json_path, "r") as f:
+            model_json = f.read()
         
-        # 🔥 Fallback: load via tf.keras (ignores extra args)
-        return tf.keras.models.load_model(path, compile=False)
+        model = model_from_json(model_json)
+        model.load_weights(weights_path)
 
-try:
-    cell_model = load_safe_model(cell_path)
-    cancer_model = load_safe_model(cancer_path)
-    print("Models loaded successfully ✅")
-except Exception as e:
-    print("Model loading failed:", e)
-    cell_model = None
-    cancer_model = None
+        print(f"Loaded model from {json_path}")
+        return model
+
+    except Exception as e:
+        print("Model loading failed:", e)
+        return None
+
+cell_model = load_model_from_files(cell_json_path, cell_weights_path)
+cancer_model = load_model_from_files(cancer_json_path, cancer_weights_path)
 
 # ==================== CLASSES ====================
 
@@ -124,5 +124,5 @@ def predict():
 # ==================== RUN ====================
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # 🔥 REQUIRED FOR RENDER
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
