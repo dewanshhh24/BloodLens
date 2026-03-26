@@ -1,6 +1,6 @@
 import tensorflow as tf
 from flask import Flask, request, jsonify
-from tensorflow.keras.models import model_from_json
+from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from flask_cors import CORS
@@ -11,79 +11,34 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ==================== MODEL FILE IDs ====================
+# ==================== MODEL SETUP ====================
 
-CELL_JSON_ID = "1qeUVGsun8JBAzHcisMZREs7biwwK60J-"
-CELL_WEIGHTS_ID = "1swz-wxFoW4zb5yvPpleoNlv7oX5qcUKo"
+CELL_ID = "1EfOd-sju9QZ6FAPxuwxwQfFQoC6ALvGk"
+CANCER_ID = "1WoTesKl-Fn8OVHG6d9qCUhw2S5wE5B7h"
 
-CANCER_JSON_ID = "1XvM3D2Jw1_ohOKAck1qazIGN226Sw6f3"
-CANCER_WEIGHTS_ID = "105wA4UCS8nUJkXHNIXvEjgQoUN807WHZ"
+cell_path = "cell_model.h5"
+cancer_path = "cancer_model.h5"
 
-# ==================== FILE PATHS ====================
-
-cell_json_path = "cell_model.json"
-cell_weights_path = "cell_weights.weights.h5"
-
-cancer_json_path = "cancer_model.json"
-cancer_weights_path = "cancer_weights.weights.h5"
-
-# ==================== DOWNLOAD FUNCTION ====================
-
-def download_file(file_id, output):
+# Download models
+def download_model(file_id, output):
     if not os.path.exists(output):
         print(f"Downloading {output}...")
-        try:
-            gdown.download(id=file_id, output=output, quiet=False, fuzzy=True)
-            print(f"{output} downloaded successfully.")
-        except Exception as e:
-            print(f"Download failed: {e}")
+        gdown.download(id=file_id, output=output, quiet=False, fuzzy=True)
+        print(f"{output} downloaded successfully.")
 
-# Download all files
-download_file(CELL_JSON_ID, cell_json_path)
-download_file(CELL_WEIGHTS_ID, cell_weights_path)
-
-download_file(CANCER_JSON_ID, cancer_json_path)
-download_file(CANCER_WEIGHTS_ID, cancer_weights_path)
+download_model(CELL_ID, cell_path)
+download_model(CANCER_ID, cancer_path)
 
 # ==================== LOAD MODELS ====================
 
-
-from tensorflow.keras.models import model_from_json
-import json
-
-def load_model_from_files(json_path, weights_path):
-    try:
-        with open(json_path, "r") as f:
-            config = json.load(f)
-
-        # 🔥 FIX INPUT LAYER CONFIG SAFELY
-        for layer in config['config']['layers']:
-            if layer['class_name'] == 'InputLayer':
-                layer_config = layer['config']
-
-                # Fix batch_shape → batch_input_shape
-                if 'batch_shape' in layer_config:
-                    layer_config['batch_input_shape'] = layer_config.pop('batch_shape')
-
-                # Remove unsupported key
-                if 'optional' in layer_config:
-                    layer_config.pop('optional')
-
-        # Convert back to JSON string
-        model_json = json.dumps(config)
-
-        model = model_from_json(model_json)
-        model.load_weights(weights_path)
-
-        print(f"Loaded model from {json_path} ✅")
-        return model
-
-    except Exception as e:
-        print("Model loading failed:", e)
-        return None
-
-cell_model = load_model_from_files(cell_json_path, cell_weights_path)
-cancer_model = load_model_from_files(cancer_json_path, cancer_weights_path)
+try:
+    cell_model = load_model(cell_path, compile=False)
+    cancer_model = load_model(cancer_path, compile=False)
+    print("Models loaded successfully ✅")
+except Exception as e:
+    print("Model loading failed:", e)
+    cell_model = None
+    cancer_model = None
 
 # ==================== CLASSES ====================
 
@@ -120,7 +75,6 @@ def predict():
         img_array = image.img_to_array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Predictions
         cell_pred = cell_model.predict(img_array)
         cancer_pred = cancer_model.predict(img_array)
 
