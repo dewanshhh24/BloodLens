@@ -179,17 +179,29 @@ async function runAnalysis() {
 
     const data = await response.json();
 
+    console.log("API RESPONSE:", data); // 🔥 DEBUG
+
+    // ❌ If API fails
+    if (!data.cell || !data.cancer) {
+      throw new Error("Invalid response");
+    }
+
+    // ✅ SAFE values
+    const cellConf = data.cell_conf || 0;
+    const cancerConf = data.cancer_conf || 0;
+    const overall = ((cellConf + cancerConf) / 2) || 0;
+
     showResults(
       { name: data.cell, desc: "Predicted cell type" },
       { name: data.cancer, desc: "Predicted cancer stage" },
-      data.cell_conf,
-      data.cancer_conf,
-      (data.cell_conf + data.cancer_conf)/2
+      cellConf,
+      cancerConf,
+      overall
     );
 
   } catch (error) {
-    alert("Error connecting to model");
-    console.error(error);
+    console.error("ERROR:", error);
+    alert("⚠️ Error connecting to model or invalid response");
   }
 
   btnText.style.display = 'flex';
@@ -220,12 +232,17 @@ function showResults(cell, cancer, cellConf, cancerConf, overall) {
     const cellBar = document.getElementById('cellConfBar');
     const cancerBar = document.getElementById('cancerConfBar');
     const overallBar = document.getElementById('overallConfBar');
-    cellBar.style.width = cellConf + '%';
-    cancerBar.style.width = cancerConf + '%';
-    overallBar.style.width = overall + '%';
-    document.getElementById('cellConfPct').textContent = cellConf + '%';
-    document.getElementById('cancerConfPct').textContent = cancerConf + '%';
-    document.getElementById('overallConfPct').textContent = overall + '%';
+    const safeCell = Number(cellConf) || 0;
+const safeCancer = Number(cancerConf) || 0;
+const safeOverall = Number(overall) || 0;
+
+cellBar.style.width = safeCell + '%';
+cancerBar.style.width = safeCancer + '%';
+overallBar.style.width = safeOverall + '%';
+
+document.getElementById('cellConfPct').textContent = safeCell.toFixed(2) + '%';
+document.getElementById('cancerConfPct').textContent = safeCancer.toFixed(2) + '%';
+document.getElementById('overallConfPct').textContent = safeOverall.toFixed(2) + '%';
   }, 120);
 
   // Top predictions
@@ -682,3 +699,6 @@ createConfusionMatrix('confusionMatrix', cellLabels, matrix);
 
 // Cancer Matrix (4x4)
 createConfusionMatrix('cancerConfusionMatrix', cancerLabels, cancerMatrix);
+
+// Year
+document.getElementById("year").textContent = new Date().getFullYear();
