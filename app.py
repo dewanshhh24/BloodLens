@@ -14,7 +14,7 @@ cell_model = load_model('cell_model.keras', compile=False)
 cancer_model = load_model('cancer_model.keras', compile=False)
 
 cell_classes = [
-    'basophil','eosinophil','erythroblast','ig',
+    'basophil','eosinophil','erythroblast','immature_granulocyte',
     'lymphocyte','monocyte','neutrophil','platelet'
 ]
 
@@ -26,7 +26,7 @@ cancer_classes = [
 
 @app.route('/')
 def home():
-    return "BloodLens API is running 🚀"
+    return "BloodLens API is running"
 
 @app.route('/predict', methods=['POST'])
 def predict():
